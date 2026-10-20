@@ -1,11 +1,16 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
     Credentials({
       name: "Credentials",
       credentials: {
@@ -48,6 +53,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          await connectToDatabase();
+          const email = user.email?.toLowerCase().trim();
+          if (!email) return false;
+
+          let dbUser = await User.findOne({ email });
+          if (!dbUser) {
+            dbUser = await User.create({
+              name: user.name || "Adventurer",
+              email: email,
+              image: user.image || "",
+              role: "user",
+            });
+          }
+          user.id = dbUser._id.toString();
+          return true;
+        } catch (error) {
+          console.error("Error signing in with Google:", error);
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
