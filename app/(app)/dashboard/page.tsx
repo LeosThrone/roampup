@@ -21,6 +21,8 @@ import { NeoButton } from "@/components/ui/NeoButton";
 import { NeoCard } from "@/components/ui/NeoCard";
 import { NeoBadge } from "@/components/ui/NeoBadge";
 
+export const instant = false;
+
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session?.user?.id;
